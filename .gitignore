@@ -8,3 +8,6 @@ rust/target
 ./env
 env
 env/
+fulldata/
+processed/
+.npz

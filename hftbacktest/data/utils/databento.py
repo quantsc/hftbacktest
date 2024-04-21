@@ -3,20 +3,22 @@ import json
 from typing import Optional, Literal
 import pandas as pd
 import datetime
-
+import numpy as np
 import numpy as np
 from numpy.typing import NDArray
-
-from .. import validate_data
-from ..validation import correct_event_order, convert_to_struct_arr
-from ... import (
+from tqdm import tqdm
+import os 
+from hftbacktest.data.validation import correct_event_order, convert_to_struct_arr
+from databento_dbn import FIXED_PRICE_SCALE
+from hftbacktest import (
     DEPTH_EVENT,
     DEPTH_CLEAR_EVENT,
     DEPTH_SNAPSHOT_EVENT,
     TRADE_EVENT,
     COL_EXCH_TIMESTAMP,
     COL_LOCAL_TIMESTAMP,
-    correct_local_timestamp
+    correct_local_timestamp,
+    validate_data
 )
 
 def handle_date(UTC_time):
@@ -82,27 +84,44 @@ def convert(
     # assume 1 is buy, -1 is sell
     rows = []
     df = pd.read_parquet(input_filename)
-    for _, row in df.iterrows():
+    # # Subtract min of (min(ts_recv), min(ts_event)) from all timestamps to avoid overflow.
+    # min_ts = min(df['ts_recv'].min(), df['ts_event'].min())
+    # df['ts_recv'] -= min_ts
+    # df['ts_event'] -= min_ts
+    # Fix price scale
+    for i in range(10):
+        df[f'ask_px_0{i}'] /= FIXED_PRICE_SCALE
+        df[f'bid_px_0{i}'] /= FIXED_PRICE_SCALE
+    # for _, row in df.iterrows():
+    for i, (_, row) in enumerate(tqdm(df.iterrows(), total=df.shape[0], desc="Converting data")):
         local_timestamp = handle_date(row['ts_recv'] ) * 1000
         exchange_timestamp = handle_date(row['ts_event']) * 1000
         
-        event = row['action']       
+        action = row['action']       
         side = row['side']
-
-        if side == "N": 
-            continue
         # convert utc 
-        asks = [(row[f'ask_px_0{i}'], row[f'ask_sz_0{i}']) for i in range(10) if row[f'ask_ct_0{i}'] > 0]
-        bids = [(row[f'bid_px_0{i}'], row[f'bid_sz_0{i}']) for i in range(10) if row[f'bid_ct_0{i}'] > 0]
+
         
-        if event != 'T' and event != 'R':
+        if action == "T": 
+            if abs(row['price']) < 1e4 and row['size'] > 0:
+                rows.append([TRADE_EVENT, exchange_timestamp, local_timestamp, 1 if row['side'] == 'B' else -1, float(row['price']), float(row['size'])])
+            else:
+                continue
+        else:
+            asks = [(row[f'ask_px_0{i}'], row[f'ask_sz_0{i}']) for i in range(10) if (row[f'ask_ct_0{i}'] > 0 and abs(row[f'ask_px_0{i}']) < 1e4)]
+            bids = [(row[f'bid_px_0{i}'], row[f'bid_sz_0{i}']) for i in range(10) if (row[f'bid_ct_0{i}'] > 0 and abs(row[f'bid_px_0{i}']) < 1e4)]
             rows += [[DEPTH_EVENT, exchange_timestamp, local_timestamp, 1, float(asks[depth_level][0]), float(asks[depth_level][1])] for depth_level in range(len(asks))]
             rows += [[DEPTH_EVENT, exchange_timestamp, local_timestamp, -1, float(bids[depth_level][0]), float(bids[depth_level][1])] for depth_level in range(len(bids))]
 
-        elif event == 'T': # we assume size and price of the trade row are the size and price of the trade
-            rows.append([TRADE_EVENT, exchange_timestamp, local_timestamp, 1 if row['side'] == 'B' else -1, float(row['price']), float(row['size'])])
-
     data = np.asarray(rows, np.float64)
+    # Subtract min of row[1], row[2] from all timestamps to avoid overflow.
+    # min_ts = min(data[:, 1].min(), data[:, 2].min())
+    # data[:, 1] -= min_ts
+    # data[:, 2] -= min_ts
+    # Drop rows with values in 4 & 5 that are more than 10 standard deviations away from the mean.
+    threshold = 10
+    data = data[np.abs(data[:, 4] - np.mean(data[:, 4])) < threshold * np.std(data[:, 4])]
+    data = data[np.abs(data[:, 5] - np.mean(data[:, 5])) < threshold * np.std(data[:, 5])]
 
     print('Correcting the latency')
     merged = correct_local_timestamp(data, base_latency)

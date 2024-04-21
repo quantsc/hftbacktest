@@ -5,3 +5,6 @@ __pycache__
 docs/_build
 rust/Cargo.lock
 rust/target
+./env
+env
+env/

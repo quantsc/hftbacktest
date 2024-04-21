@@ -10,4 +10,4 @@ env
 env/
 fulldata/
 processed/
-.npz
+*.npz

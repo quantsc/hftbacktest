@@ -244,3 +244,40 @@ def prep_for_prediction(df: pl.DataFrame, offset=1000, lookback="1s"):
     # cast to f32
   
     return df
+
+
+import databento as db
+import os 
+import pandas as pd
+from databento_dbn import FIXED_PRICE_SCALE
+
+current_dir = os.getcwd()
+
+# Read all the files in the /data directory and store them in a list.
+downloaded_files = [current_dir + '/fulldata/' + file for file in os.listdir(current_dir + '/fulldata') if file.endswith(".dbn.zst")]
+save_dir = "/home/danny/hftbacktest/processed/"
+
+# Make multithreaded
+import multiprocessing
+from joblib import Parallel, delayed
+
+drop_cols = [
+    "rtype",
+    "publisher_id",
+    "instrument_id",
+    "flags",
+    "sequence",
+]
+
+def process_file(file):
+    # Read the data
+    data = db.DBNStore.from_file(file).to_df(price_type="fixed")
+    # Drop the columns that are not needed
+    data["price"] = data["price"] / FIXED_PRICE_SCALE
+    data = data.drop(columns=drop_cols).reset_index()
+    # Save the data
+    data.to_parquet(save_dir + file.split("/")[-1][:-8] + ".parquet")
+    print(f"Processed {file}")
+
+Parallel(n_jobs=multiprocessing.cpu_count() // 4)(delayed(process_file)(file) for file in sorted(downloaded_files))
+

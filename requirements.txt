@@ -1,0 +1,11 @@
+alpaca-py
+numpy 
+pandas 
+polars
+matplotlib
+databento
+xgboost
+statsmodels
+seaborn
+tqdm
+pyinform 

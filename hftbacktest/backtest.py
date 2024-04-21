@@ -2,6 +2,8 @@ from numba import int64, boolean, float64
 
 from .order import LIMIT, BUY, SELL
 from .reader import WAIT_ORDER_RESPONSE_NONE, COL_LOCAL_TIMESTAMP, UNTIL_END_OF_DATA
+from .proc.local import Local_
+from .proc.proc import Proc
 import numba
 
 class SingleAssetHftBacktest:
@@ -17,8 +19,8 @@ class SingleAssetHftBacktest:
     """
 
     def __init__(self, local, exch):
-        self.local = local
-        self.exch = exch
+        self.local: Local_ = local
+        self.exch: Proc = exch
 
         #: Whether a backtest has finished.
         self.run = True
@@ -422,12 +424,19 @@ class SingleAssetHftBacktest:
         with numba.objmode():
 
             print("called", flush=True)
+        i = 0
         while True:
             # Select which side will be processed next.
             print(f"accessing")
             next_local_timestamp = self.local.next_timestamp()
             next_exch_timestamp = self.exch.next_timestamp()
-            print(f"next_local_timestamp: {next_local_timestamp}, next_exch_timestamp: {next_exch_timestamp}")
+            # Get the next timestamp to be processed, from a numpy object.
+            nl = float(next_local_timestamp)
+            ne = float(next_exch_timestamp)
+            i += 1
+            print(nl)
+            if i > 10:
+                break
             # Local will be processed.
             if (0 < next_local_timestamp < next_exch_timestamp) \
                     or (next_local_timestamp > 0 >= next_exch_timestamp):

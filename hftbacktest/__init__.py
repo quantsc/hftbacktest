@@ -189,7 +189,7 @@ def HftBacktest(
         start_fee: float = 0,
         trade_list_size: int = 0,
         exchange_model: ExchangeModelInitiator = None
-):
+) -> SingleAssetHftBacktest_: 
     r"""
     Create a HftBacktest instance.
 

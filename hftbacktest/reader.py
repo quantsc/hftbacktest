@@ -86,7 +86,7 @@ class DataReader:
     def release(self, data):
         self.cache.remove(data)
 
-    def next(self):
+    def next(self) -> np.ndarray:
         if self.data_num < len(self.file_list):
             filepath = self.file_list[self.data_num]
             if not self.cache.__contains__(self.data_num):

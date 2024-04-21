@@ -4,14 +4,14 @@ from numba.typed import Dict
 
 from ..marketdepth import MarketDepth
 from ..order import order_ladder_ty, order_ty, OrderBus
-
+from ..reader import DataReader
 
 class Proc:
     def __init__(self):
         pass
 
     def _proc_init(self, reader, orders_to, orders_from, depth, state, order_latency):
-        self.reader = reader
+        self.reader: DataReader = reader
         self.next_data = reader.next()
         self.data = np.empty((0, self.next_data.shape[1]), self.next_data.dtype)
         self.row_num = 0
@@ -22,7 +22,7 @@ class Proc:
         self.orders_to = orders_to
         self.orders_from = orders_from
 
-        self.depth = depth
+        self.depth: MarketDepth = depth
         self.state = state
         self.order_latency = order_latency
 
@@ -76,7 +76,9 @@ class Proc:
 
     def _next_data_timestamp_column(self, column):
         # Finds the next valid timestamp
+        col = 0
         while True:
+            col += 1
             if self.next_row_num < len(self.next_data):
                 timestamp = self.next_data[self.next_row_num, column]
                 if timestamp > 0:
@@ -105,8 +107,7 @@ class Proc:
         # zero and negative timestamp are invalid timestamp.
         # if two timestamps are valid, choose the earlier one.
         # otherwise, choose the valid one.
-        if (0 < next_recv_order_timestamp < next_data_timestamp) \
-                or (next_data_timestamp <= 0 < next_recv_order_timestamp):
+        if (0 < next_recv_order_timestamp < next_data_timestamp) or (next_data_timestamp <= 0 < next_recv_order_timestamp):
             # Processes the order part.
             next_timestamp = 0
             next_frontmost_timestamp = 0

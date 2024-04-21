@@ -5,6 +5,8 @@ from .reader import WAIT_ORDER_RESPONSE_NONE, COL_LOCAL_TIMESTAMP, UNTIL_END_OF_
 from .proc.local import Local_
 from .proc.proc import Proc
 import numba
+import time as time
+
 
 class SingleAssetHftBacktest:
     r"""
@@ -421,32 +423,21 @@ class SingleAssetHftBacktest:
             before the specified timestamp, it returns ``False``.
         """
         found_order_resp_timestamp = False
-        with numba.objmode():
-
-            print("called", flush=True)
         i = 0
+
         while True:
             # Select which side will be processed next.
-            print(f"accessing")
             next_local_timestamp = self.local.next_timestamp()
             next_exch_timestamp = self.exch.next_timestamp()
             # Get the next timestamp to be processed, from a numpy object.
-            nl = float(next_local_timestamp)
-            ne = float(next_exch_timestamp)
-            i += 1
-            print(nl)
-            if i > 10:
-                break
             # Local will be processed.
-            if (0 < next_local_timestamp < next_exch_timestamp) \
-                    or (next_local_timestamp > 0 >= next_exch_timestamp):
+            if (0 < next_local_timestamp < next_exch_timestamp) or (next_local_timestamp > 0 >= next_exch_timestamp):
                 if next_local_timestamp > timestamp:
                     break
                 resp_timestamp = self.local.process(WAIT_ORDER_RESPONSE_NONE)
 
             # Exchange will be processed.
-            elif (0 < next_exch_timestamp <= next_local_timestamp) \
-                    or (next_exch_timestamp > 0 >= next_local_timestamp):
+            elif (0 < next_exch_timestamp <= next_local_timestamp) or (next_exch_timestamp > 0 >= next_local_timestamp):
                 if next_exch_timestamp > timestamp:
                     break
                 resp_timestamp = self.exch.process(
@@ -466,6 +457,8 @@ class SingleAssetHftBacktest:
 
         if not self.run:
             return False
+
+
         return True
 
     def reset(

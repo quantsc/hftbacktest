@@ -48,10 +48,8 @@ def create_last_snapshot(
         Linear,
         snapshot=initial_snapshot
     )
-    print("Processing data...")
     # Go to the end of the data.
     hbt.goto(UNTIL_END_OF_DATA)
-    print("Data processed.")
     snapshot = []
 
     # For bid depth

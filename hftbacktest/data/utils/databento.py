@@ -85,11 +85,13 @@ def convert(
     for _, row in df.iterrows():
         local_timestamp = handle_date(row['ts_recv'] ) * 1000
         exchange_timestamp = handle_date(row['ts_event']) * 1000
-
-        # convert utc 
+        
         event = row['action']       
         side = row['side']
 
+        if side == "N": 
+            continue
+        # convert utc 
         asks = [(row[f'ask_px_0{i}'], row[f'ask_sz_0{i}']) for i in range(10) if row[f'ask_ct_0{i}'] > 0]
         bids = [(row[f'bid_px_0{i}'], row[f'bid_sz_0{i}']) for i in range(10) if row[f'bid_ct_0{i}'] > 0]
         

@@ -21,7 +21,7 @@ from ... import (
 
 def handle_date(UTC_time):
     # covert UTC time like this '2024-01-31 13:00:56.891462406 UTC' to unix miliseconds timestamp
-    UTC_time = UTC_time[:-7]
+    UTC_time = str(UTC_time)[:24]
     date = datetime.datetime.strptime(UTC_time, '%Y-%m-%d %H:%M:%S.%f')
     timestamp = date.timestamp()
     timestamp = int(timestamp * 1000)
@@ -91,7 +91,7 @@ def convert(
         side = row['side']
 
         asks = [(row[f'ask_px_0{i}'], row[f'ask_sz_0{i}']) for i in range(10) if row[f'ask_ct_0{i}'] > 0]
-        bids = [(row[f'bid_px_0{i}'], row[f'bid_sz_0{i}']) for i in 10 if row[f'bid_ct_0{i}'] > 0]
+        bids = [(row[f'bid_px_0{i}'], row[f'bid_sz_0{i}']) for i in range(10) if row[f'bid_ct_0{i}'] > 0]
         
         if event != 'T' and event != 'R':
             rows += [[DEPTH_EVENT, exchange_timestamp, local_timestamp, 1, float(asks[depth_level][0]), float(asks[depth_level][1])] for depth_level in range(len(asks))]
@@ -99,61 +99,6 @@ def convert(
 
         elif event == 'T': # we assume size and price of the trade row are the size and price of the trade
             rows.append([TRADE_EVENT, exchange_timestamp, local_timestamp, 1 if row['side'] == 'B' else -1, float(row['price']), float(row['size'])])
-
-        else:
-            # reset
-            continue
-
-
-
-
-        while True:
-            line = f.readline()
-            if not line:
-                break
-            local_timestamp = int(line[:16])
-            message = json.loads(line[17:])
-            data = message.get('data')
-            if data is not None:
-                evt = data['e']
-                if evt == 'trade':
-                    if data['X'] != 'MARKET':
-                        continue
-                    # event_time = data['E']
-                    transaction_time = data['T']
-                    price = data['p']
-                    qty = data['q']
-                    side = -1 if data['m'] else 1  # trade initiator's side
-                    exch_timestamp = int(transaction_time) * 1000
-                    rows.append([TRADE_EVENT, exch_timestamp, local_timestamp, side, float(price), float(qty)])
-                elif evt == 'depthUpdate':
-                    # event_time = data['E']
-                    transaction_time = data['T']
-                    bids = data['b']
-                    asks = data['a']
-                    exch_timestamp = int(transaction_time) * 1000
-                    rows += [[DEPTH_EVENT, exch_timestamp, local_timestamp, 1, float(bid[0]), float(bid[1])] for bid in bids]
-                    rows += [[DEPTH_EVENT, exch_timestamp, local_timestamp, -1, float(ask[0]), float(ask[1])] for ask in asks]
-                elif evt == 'markPriceUpdate' and 'm' in opt:
-                    # event_time = data['E']
-                    transaction_time = data['T']
-                    index = data['i']
-                    mark_price = data['p']
-                    # est_settle_price = data['P']
-                    funding_rate = data['r']
-                    rows.append([100, -1, local_timestamp, 0, float(index), 0])
-                    rows.append([101, -1, local_timestamp, 0, float(mark_price), 0])
-                    rows.append([102, -1, local_timestamp, 0, float(funding_rate), 0])
-                elif evt == 'bookTicker' and 't' in opt:
-                    # event_time = data['E']
-                    transaction_time = data['T']
-                    bid_price = data['b']
-                    bid_qty = data['B']
-                    ask_price = data['a']
-                    ask_qty = data['A']
-                    exch_timestamp = int(transaction_time) * 1000
-                    rows.append([103, exch_timestamp, local_timestamp, 1, float(bid_price), float(bid_qty)])
-                    rows.append([104, exch_timestamp, local_timestamp, -1, float(ask_price), float(ask_qty)])
 
     data = np.asarray(rows, np.float64)
 

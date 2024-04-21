@@ -9,3 +9,4 @@ statsmodels
 seaborn
 tqdm
 pyinform 
+plotly

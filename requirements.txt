@@ -10,3 +10,5 @@ seaborn
 tqdm
 pyinform 
 plotly
+ipywidgets
+ipykernel

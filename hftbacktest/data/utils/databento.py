@@ -1,7 +1,8 @@
 import gzip
 import json
 from typing import Optional, Literal
-import polars as pl
+import pandas as pd
+import datetime
 
 import numpy as np
 from numpy.typing import NDArray
@@ -18,6 +19,13 @@ from ... import (
     correct_local_timestamp
 )
 
+def handle_date(UTC_time):
+    # covert UTC time like this '2024-01-31 13:00:56.891462406 UTC' to unix miliseconds timestamp
+    UTC_time = UTC_time[:-7]
+    date = datetime.datetime.strptime(UTC_time, '%Y-%m-%d %H:%M:%S.%f')
+    timestamp = date.timestamp()
+    timestamp = int(timestamp * 1000)
+    return timestamp
 
 def convert(
         input_filename: str,
@@ -70,20 +78,29 @@ def convert(
     Returns:
         Converted data compatible with HftBacktest.
     """
+
+    # assume 1 is buy, -1 is sell
     rows = []
-    df = pl.read_parquet(input_filename)
+    df = pd.read_parquet(input_filename)
     for _, row in df.iterrows():
-        local_timestamp = row['ts_recv'] 
-        exchange_timestamp = row['ts_event']
-        action = row['action']       
+        local_timestamp = handle_date(row['ts_recv'] ) * 1000
+        exchange_timestamp = handle_date(row['ts_event']) * 1000
+
+        # convert utc 
+        event = row['action']       
         side = row['side']
 
-        asks, bids = [], []
-        for depth in ['00', '01', '02', '03', '04', '05', '06', '07', '08', '09']:
-            asks.append((row[f'ask_px_{depth}'], row[f'ask_sz_{depth}'], row[f'ask_ct_{depth}']))
-            bids.append((row[f'bid_px_{depth}'], row[f'bid_sz_{depth}'], row[f'bid_ct_{depth}']))
-            
-        if side == 'N':
+        asks = [(row[f'ask_px_0{i}'], row[f'ask_sz_0{i}']) for i in range(10) if row[f'ask_ct_0{i}'] > 0]
+        bids = [(row[f'bid_px_0{i}'], row[f'bid_sz_0{i}']) for i in 10 if row[f'bid_ct_0{i}'] > 0]
+        
+        if event != 'T' and event != 'R':
+            rows += [[DEPTH_EVENT, exchange_timestamp, local_timestamp, 1, float(asks[depth_level][0]), float(asks[depth_level][1])] for depth_level in range(len(asks))]
+            rows += [[DEPTH_EVENT, exchange_timestamp, local_timestamp, -1, float(bids[depth_level][0]), float(bids[depth_level][1])] for depth_level in range(len(bids))]
+
+        elif event == 'T': # we assume size and price of the trade row are the size and price of the trade
+            rows.append([TRADE_EVENT, exchange_timestamp, local_timestamp, 1 if row['side'] == 'B' else -1, float(row['price']), float(row['size'])])
+
+        else:
             # reset
             continue
 
@@ -137,27 +154,6 @@ def convert(
                     exch_timestamp = int(transaction_time) * 1000
                     rows.append([103, exch_timestamp, local_timestamp, 1, float(bid_price), float(bid_qty)])
                     rows.append([104, exch_timestamp, local_timestamp, -1, float(ask_price), float(ask_qty)])
-            else:
-                # snapshot
-                # event_time = msg['E']
-                transaction_time = message['T']
-                bids = message['bids']
-                asks = message['asks']
-                exch_timestamp = int(transaction_time) * 1000
-                if len(bids) > 0:
-                    bid_clear_upto = float(bids[-1][0])
-                    # clears the existing market depth upto the prices in the snapshot.
-                    rows.append([DEPTH_CLEAR_EVENT, exch_timestamp, local_timestamp, 1, bid_clear_upto, 0])
-                    # inserts the snapshot.
-                    rows += [[DEPTH_SNAPSHOT_EVENT, exch_timestamp, local_timestamp, 1, float(bid[0]), float(bid[1])]
-                             for bid in bids]
-                if len(asks) > 0:
-                    ask_clear_upto = float(asks[-1][0])
-                    # clears the existing market depth upto the prices in the snapshot.
-                    rows.append([DEPTH_CLEAR_EVENT, exch_timestamp, local_timestamp, -1, ask_clear_upto, 0])
-                    # inserts the snapshot.
-                    rows += [[DEPTH_SNAPSHOT_EVENT, exch_timestamp, local_timestamp, -1, float(ask[0]), float(ask[1])]
-                             for ask in asks]
 
     data = np.asarray(rows, np.float64)
 

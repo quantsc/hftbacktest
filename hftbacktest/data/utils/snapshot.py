@@ -8,6 +8,7 @@ from ... import HftBacktest, Linear, ConstantLatency
 from ...typing import DataCollection, Data
 from ...reader import UNTIL_END_OF_DATA, DEPTH_SNAPSHOT_EVENT
 
+from tqdm import tqdm
 
 def create_last_snapshot(
         data: DataCollection,
@@ -47,27 +48,38 @@ def create_last_snapshot(
         Linear,
         snapshot=initial_snapshot
     )
-
+    print("Processing data...")
     # Go to the end of the data.
     hbt.goto(UNTIL_END_OF_DATA)
-
+    print("Data processed.")
     snapshot = []
-    snapshot += [[
-        DEPTH_SNAPSHOT_EVENT,
-        hbt.last_timestamp,
-        -1,
-        1,
-        float(bid * tick_size),
-        float(qty)
-    ] for bid, qty in sorted(hbt.bid_depth.items(), key=lambda v: -float(v[0]))]
-    snapshot += [[
-        DEPTH_SNAPSHOT_EVENT,
-        hbt.last_timestamp,
-        -1,
-        -1,
-        float(ask * tick_size),
-        float(qty)
-    ] for ask, qty in sorted(hbt.ask_depth.items(), key=lambda v: float(v[0]))]
+
+    # For bid depth
+    with tqdm(total=len(hbt.bid_depth.items()), desc="Processing bid depth") as pbar:
+        for bid, qty in sorted(hbt.bid_depth.items(), key=lambda v: -float(v[0])):
+            snapshot.append([
+                DEPTH_SNAPSHOT_EVENT,
+                hbt.last_timestamp,
+                -1,
+                1,
+                float(bid * tick_size),
+                float(qty)
+            ])
+            pbar.update(1)
+
+    # For ask depth
+    with tqdm(total=len(hbt.ask_depth.items()), desc="Processing ask depth") as pbar:
+        for ask, qty in sorted(hbt.ask_depth.items(), key=lambda v: float(v[0])):
+            snapshot.append([
+                DEPTH_SNAPSHOT_EVENT,
+                hbt.last_timestamp,
+                -1,
+                -1,
+                float(ask * tick_size),
+                float(qty)
+            ])
+            pbar.update(1)
+
 
     snapshot = np.asarray(snapshot, np.float64)
 

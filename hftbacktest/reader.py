@@ -98,6 +98,7 @@ class DataReader:
                         data = np.load(filepath)
                     elif filepath.endswith('.npz'):
                         tmp = np.load(filepath)
+                        print("loaded")
                         if 'data' in tmp:
                             data = tmp['data']
                         else:

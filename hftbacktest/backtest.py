@@ -2,7 +2,7 @@ from numba import int64, boolean, float64
 
 from .order import LIMIT, BUY, SELL
 from .reader import WAIT_ORDER_RESPONSE_NONE, COL_LOCAL_TIMESTAMP, UNTIL_END_OF_DATA
-
+import numba
 
 class SingleAssetHftBacktest:
     r"""
@@ -399,7 +399,7 @@ class SingleAssetHftBacktest:
             before the specified timestamp, it returns ``False``.
         """
         return self.goto(self.current_timestamp + duration)
-
+    
     def goto(self, timestamp: float64, wait_order_response: int64 = WAIT_ORDER_RESPONSE_NONE):
         r"""
         Goes to a specified timestamp.
@@ -419,11 +419,15 @@ class SingleAssetHftBacktest:
             before the specified timestamp, it returns ``False``.
         """
         found_order_resp_timestamp = False
+        with numba.objmode():
+
+            print("called", flush=True)
         while True:
             # Select which side will be processed next.
+            print(f"accessing")
             next_local_timestamp = self.local.next_timestamp()
             next_exch_timestamp = self.exch.next_timestamp()
-
+            print(f"next_local_timestamp: {next_local_timestamp}, next_exch_timestamp: {next_exch_timestamp}")
             # Local will be processed.
             if (0 < next_local_timestamp < next_exch_timestamp) \
                     or (next_local_timestamp > 0 >= next_exch_timestamp):

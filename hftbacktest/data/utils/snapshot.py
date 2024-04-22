@@ -7,7 +7,7 @@ from ..validation import convert_to_struct_arr
 from ... import HftBacktest, Linear, ConstantLatency
 from ...typing import DataCollection, Data
 from ...reader import UNTIL_END_OF_DATA, DEPTH_SNAPSHOT_EVENT
-
+from .databento import BID_FLAG, ASK_FLAG
 from tqdm import tqdm
 
 def create_last_snapshot(
@@ -59,7 +59,7 @@ def create_last_snapshot(
                 DEPTH_SNAPSHOT_EVENT,
                 hbt.last_timestamp,
                 -1,
-                -1,
+                BID_FLAG,
                 float(bid * tick_size),
                 float(qty)
             ])
@@ -72,7 +72,7 @@ def create_last_snapshot(
                 DEPTH_SNAPSHOT_EVENT,
                 hbt.last_timestamp,
                 -1,
-                1,
+                ASK_FLAG,
                 float(ask * tick_size),
                 float(qty)
             ])

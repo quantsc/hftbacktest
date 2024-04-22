@@ -20,7 +20,8 @@ from hftbacktest import (
     correct_local_timestamp,
     validate_data
 )
-
+BID_FLAG = 1
+ASK_FLAG = -1
 def handle_date(UTC_time):
     # covert UTC time like this '2024-01-31 13:00:56.891462406 UTC' to unix miliseconds timestamp
     UTC_time = str(UTC_time)[:24]
@@ -84,16 +85,14 @@ def convert(
     # assume 1 is buy, -1 is sell
     rows = []
     df = pd.read_parquet(input_filename)
-    # # Subtract min of (min(ts_recv), min(ts_event)) from all timestamps to avoid overflow.
-    # min_ts = min(df['ts_recv'].min(), df['ts_event'].min())
-    # df['ts_recv'] -= min_ts
-    # df['ts_event'] -= min_ts
-    # Fix price scale
+
     for i in range(10):
         df[f'ask_px_0{i}'] /= FIXED_PRICE_SCALE
         df[f'bid_px_0{i}'] /= FIXED_PRICE_SCALE
     # for _, row in df.iterrows():
     for i, (_, row) in enumerate(tqdm(df.iterrows(), total=df.shape[0], desc="Converting data")):
+        if i > 50000: 
+            break
         local_timestamp = handle_date(row['ts_recv'] ) * 1000
         exchange_timestamp = handle_date(row['ts_event']) * 1000
         
@@ -104,20 +103,16 @@ def convert(
         
         if action == "T": 
             if abs(row['price']) < 1e4 and row['size'] > 0:
-                rows.append([TRADE_EVENT, exchange_timestamp, local_timestamp, 1 if row['side'] == 'A' else -1, float(row['price']), float(row['size'])])
+                rows.append([TRADE_EVENT, exchange_timestamp, local_timestamp, BID_FLAG if row['side'] == 'A' else ASK_FLAG, float(row['price']), float(row['size'])])
             else:
                 continue
         else:
             asks = [(row[f'ask_px_0{i}'], row[f'ask_sz_0{i}']) for i in range(10) if (row[f'ask_ct_0{i}'] > 0 and abs(row[f'ask_px_0{i}']) < 1e4)]
             bids = [(row[f'bid_px_0{i}'], row[f'bid_sz_0{i}']) for i in range(10) if (row[f'bid_ct_0{i}'] > 0 and abs(row[f'bid_px_0{i}']) < 1e4)]
-            rows += [[DEPTH_EVENT, exchange_timestamp, local_timestamp, -1, float(asks[depth_level][0]), float(asks[depth_level][1])] for depth_level in range(len(asks))]
-            rows += [[DEPTH_EVENT, exchange_timestamp, local_timestamp, 1, float(bids[depth_level][0]), float(bids[depth_level][1])] for depth_level in range(len(bids))]
+            rows += [[DEPTH_EVENT, exchange_timestamp, local_timestamp, ASK_FLAG, float(asks[depth_level][0]), float(asks[depth_level][1])] for depth_level in range(len(asks))]
+            rows += [[DEPTH_EVENT, exchange_timestamp, local_timestamp, BID_FLAG, float(bids[depth_level][0]), float(bids[depth_level][1])] for depth_level in range(len(bids))]
 
     data = np.asarray(rows, np.float64)
-    # Subtract min of row[1], row[2] from all timestamps to avoid overflow.
-    # min_ts = min(data[:, 1].min(), data[:, 2].min())
-    # data[:, 1] -= min_ts
-    # data[:, 2] -= min_ts
     # Drop rows with values in 4 & 5 that are more than 10 standard deviations away from the mean.
     threshold = 10
     data = data[np.abs(data[:, 4] - np.mean(data[:, 4])) < threshold * np.std(data[:, 4])]

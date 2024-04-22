@@ -104,14 +104,14 @@ def convert(
         
         if action == "T": 
             if abs(row['price']) < 1e4 and row['size'] > 0:
-                rows.append([TRADE_EVENT, exchange_timestamp, local_timestamp, 1 if row['side'] == 'B' else -1, float(row['price']), float(row['size'])])
+                rows.append([TRADE_EVENT, exchange_timestamp, local_timestamp, 1 if row['side'] == 'A' else -1, float(row['price']), float(row['size'])])
             else:
                 continue
         else:
             asks = [(row[f'ask_px_0{i}'], row[f'ask_sz_0{i}']) for i in range(10) if (row[f'ask_ct_0{i}'] > 0 and abs(row[f'ask_px_0{i}']) < 1e4)]
             bids = [(row[f'bid_px_0{i}'], row[f'bid_sz_0{i}']) for i in range(10) if (row[f'bid_ct_0{i}'] > 0 and abs(row[f'bid_px_0{i}']) < 1e4)]
-            rows += [[DEPTH_EVENT, exchange_timestamp, local_timestamp, 1, float(asks[depth_level][0]), float(asks[depth_level][1])] for depth_level in range(len(asks))]
-            rows += [[DEPTH_EVENT, exchange_timestamp, local_timestamp, -1, float(bids[depth_level][0]), float(bids[depth_level][1])] for depth_level in range(len(bids))]
+            rows += [[DEPTH_EVENT, exchange_timestamp, local_timestamp, -1, float(asks[depth_level][0]), float(asks[depth_level][1])] for depth_level in range(len(asks))]
+            rows += [[DEPTH_EVENT, exchange_timestamp, local_timestamp, 1, float(bids[depth_level][0]), float(bids[depth_level][1])] for depth_level in range(len(bids))]
 
     data = np.asarray(rows, np.float64)
     # Subtract min of row[1], row[2] from all timestamps to avoid overflow.

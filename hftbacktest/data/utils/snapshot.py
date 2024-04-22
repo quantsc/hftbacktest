@@ -59,7 +59,7 @@ def create_last_snapshot(
                 DEPTH_SNAPSHOT_EVENT,
                 hbt.last_timestamp,
                 -1,
-                1,
+                -1,
                 float(bid * tick_size),
                 float(qty)
             ])
@@ -72,7 +72,7 @@ def create_last_snapshot(
                 DEPTH_SNAPSHOT_EVENT,
                 hbt.last_timestamp,
                 -1,
-                -1,
+                1,
                 float(ask * tick_size),
                 float(qty)
             ])

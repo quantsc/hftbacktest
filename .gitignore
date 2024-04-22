@@ -11,3 +11,5 @@ env/
 fulldata/
 processed/
 *.npz
+GOOG.parquet
+GOOGL.parquet

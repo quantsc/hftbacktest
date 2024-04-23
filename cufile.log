@@ -8,3 +8,23 @@
 
  22-04-2024 12:19:43:804 [pid=38465 tid=38465] ERROR  0:91 dlopen error libnuma.so.1.0.0: cannot open shared object file: No such file or directory
  22-04-2024 12:19:43:807 [pid=38465 tid=38465] ERROR  cufio-fs:79 mount option not found in mount table data device: /dev/nvme0n1p1
+ 23-04-2024 03:58:02:626 [pid=245885 tid=245885] ERROR  0:140 unable to load,  liburcu-bp.so.6 
+
+ 23-04-2024 03:58:02:629 [pid=245885 tid=245885] ERROR  0:140 unable to load,  liburcu-bp.so.1 
+
+ 23-04-2024 03:58:02:630 [pid=245885 tid=245885] WARN   0:168 failed to open /proc/driver/nvidia-fs/devcount  error: No such file or directory
+ 23-04-2024 03:58:02:630 [pid=245885 tid=245885] NOTICE  cufio-drv:720 running in compatible mode
+ 23-04-2024 03:58:02:784 [pid=245885 tid=245885] ERROR  0:140 unable to load,  libnuma.so.1.0.0 
+
+ 23-04-2024 03:58:02:784 [pid=245885 tid=245885] ERROR  0:91 dlopen error libnuma.so.1.0.0: cannot open shared object file: No such file or directory
+ 23-04-2024 03:58:02:787 [pid=245885 tid=245885] ERROR  cufio-fs:79 mount option not found in mount table data device: /dev/nvme0n1p1
+ 23-04-2024 04:28:33:170 [pid=257748 tid=257748] ERROR  0:140 unable to load,  liburcu-bp.so.6 
+
+ 23-04-2024 04:28:33:170 [pid=257748 tid=257748] ERROR  0:140 unable to load,  liburcu-bp.so.1 
+
+ 23-04-2024 04:28:33:170 [pid=257748 tid=257748] WARN   0:168 failed to open /proc/driver/nvidia-fs/devcount  error: No such file or directory
+ 23-04-2024 04:28:33:170 [pid=257748 tid=257748] NOTICE  cufio-drv:720 running in compatible mode
+ 23-04-2024 04:28:33:318 [pid=257748 tid=257748] ERROR  0:140 unable to load,  libnuma.so.1.0.0 
+
+ 23-04-2024 04:28:33:318 [pid=257748 tid=257748] ERROR  0:91 dlopen error libnuma.so.1.0.0: cannot open shared object file: No such file or directory
+ 23-04-2024 04:28:33:321 [pid=257748 tid=257748] ERROR  cufio-fs:79 mount option not found in mount table data device: /dev/nvme0n1p1

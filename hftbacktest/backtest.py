@@ -231,6 +231,11 @@ class SingleAssetHftBacktest:
             ``True`` if the method reaches the specified timestamp within the data. If the end of the data is reached
             before the specified timestamp, it returns ``False``.
         """
+
+        cost = price*qty
+        if cost > self.balance():
+            return False # no
+
         self.local.submit_order(order_id, BUY, price, qty, order_type, time_in_force, self.current_timestamp)
 
         if wait:
@@ -268,6 +273,10 @@ class SingleAssetHftBacktest:
             ``True`` if the method reaches the specified timestamp within the data. If the end of the data is reached
             before the specified timestamp, it returns ``False``.
         """
+
+        if qty > self.position():
+            return False
+
         self.local.submit_order(order_id, SELL, price, qty, order_type, time_in_force, self.current_timestamp)
 
         if wait:

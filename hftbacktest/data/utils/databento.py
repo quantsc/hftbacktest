@@ -91,8 +91,6 @@ def convert(
         df[f'bid_px_0{i}'] /= FIXED_PRICE_SCALE
     # for _, row in df.iterrows():
     for i, (_, row) in enumerate(tqdm(df.iterrows(), total=df.shape[0], desc="Converting data")):
-        if i > 50000: 
-            break
         local_timestamp = handle_date(row['ts_recv'] ) * 1000
         exchange_timestamp = handle_date(row['ts_event']) * 1000
         

@@ -101,7 +101,6 @@ def convert(
         action = row['action']       
         side = row['side']
         # convert utc 
-
         
         if action == "T": 
             if abs(row['price']) < 1e4 and row['size'] > 0:

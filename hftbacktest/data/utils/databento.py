@@ -36,7 +36,8 @@ def convert(
         opt: Literal['', 'm', 't', 'mt'] = '',
         base_latency: float = 0,
         compress: bool = False,
-        structured_array: bool = False
+        structured_array: bool = False, 
+        limit: int = -1,
 ) -> NDArray:
     r"""
     Converts raw Binance Futures feed stream file into a format compatible with HftBacktest.
@@ -91,6 +92,9 @@ def convert(
         df[f'bid_px_0{i}'] /= FIXED_PRICE_SCALE
     # for _, row in df.iterrows():
     for i, (_, row) in enumerate(tqdm(df.iterrows(), total=df.shape[0], desc="Converting data")):
+        if i > limit and limit > 0:
+            break
+
         local_timestamp = handle_date(row['ts_recv'] ) * 1000
         exchange_timestamp = handle_date(row['ts_event']) * 1000
         
